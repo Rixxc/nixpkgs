@@ -1,22 +1,37 @@
 { stdenv
-, fetchzip
+, fetchFromGitHub
 , cmake
 , openssl
 , liboqs
+, nix-update-script
 }:
-stdenv.mkDerivation rec {
+stdenv.mkDerivation (finalAttrs: {
   name = "oqs-provider";
-  version = "0.6.0";
+  version = "0.6.1";
 
-  src = fetchzip {
-    url = "https://github.com/open-quantum-safe/oqs-provider/archive/refs/tags/${version}.zip";
-    hash = "sha256-9iVslcBLLzQ4ACS7xsTj4wOLZO56DWWPjKRVmCXaW7I=";
+  src = fetchFromGitHub {
+    owner = "open-quantum-safe";
+    repo  = "oqs-provider";
+    rev = finalAttrs.version;
+    hash = "sha256-AW0rOszXm9Hy55b2fQ2mpZulhXjYwvztwL6DIFgIzjA=";
   };
 
-  buildInputs = [ openssl liboqs ];
-  nativeBuildInputs = [ cmake ];
+  nativeBuildInputs = [
+    cmake
+  ];
+
+  buildInputs = [
+    openssl
+    liboqs
+  ];
 
   nativeCheckInputs = [ openssl.bin ];
+
+  configureFlags = [ "--with-modulesdir=$$out/lib/ossl-modules" ];
+
+  postPatch = ''
+    echo ${finalAttrs.version} > VERSION
+  '';
 
   preInstall = ''
     mkdir -p "$out"
@@ -32,4 +47,6 @@ stdenv.mkDerivation rec {
   enableParallelInstalling = false;
 
   doCheck = true;
-}
+
+  passthru.updateScript = nix-update-script { };
+})
